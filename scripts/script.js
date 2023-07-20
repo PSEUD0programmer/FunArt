@@ -9,9 +9,15 @@ const toolBtns = document.querySelectorAll(".tool"),//инструменты
     saveImg = document.querySelector(".save-img");
 
 const canvas = document.getElementById('canvas'),//холсты
-    draw = document.getElementById('draw');
+    draw = document.getElementById('draw'),
+    layer1 = document.getElementById('layer1'),
+    layer2 = document.getElementById('layer2'),
+    layer3 = document.getElementById('layer3');
 const canvas_ctx = canvas.getContext('2d'),//контексты
-    draw_ctx = draw.getContext('2d');
+    draw_ctx = draw.getContext('2d'),
+    layer1_ctx = layer1.getContext('2d'),
+    layer2_ctx = layer2.getContext('2d'),
+    layer3_ctx = layer3.getContext('2d');
 window.addEventListener('keydown', this.check, false);//клавиши
 
 let snapShot, lastPoint, currentPoint,//переменные
@@ -23,6 +29,10 @@ let snapShot, lastPoint, currentPoint,//переменные
     selectedColor = "black",//выбранный цвет
     backgroundColor = "white";//цвет задника
 
+let selectedLayer = 1,
+    layer_ctx = layer1_ctx,
+    layer = layer1;
+
 var cPushArray = [];
 var cStep = -1,
     cLimit = 50;
@@ -31,20 +41,28 @@ var cStep = -1,
 window.addEventListener("load", () => {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
+
     draw.width = draw.offsetWidth;
     draw.height = draw.offsetHeight;
-    setCanvasBackground();
+
+    layer1.width = layer1.offsetWidth;
+    layer1.height = layer1.offsetHeight;
+
+    layer2.width = layer2.offsetWidth;
+    layer2.height = layer2.offsetHeight;
+
+    layer3.width = layer3.offsetWidth;
+    layer3.height = layer3.offsetHeight;
+    setCanvasBackground(canvas_ctx);
 
 });
 
 //Цвет холста
-function setCanvasBackground() {
-    canvas_ctx.fillStyle = backgroundColor;
-    canvas_ctx.fillRect(0, 0, canvas.width, canvas.height);
-    canvas_ctx.fillStyle = selectedColor;
-    cPushArray = [];
-    cStep = -1;
-    cPush();
+function setCanvasBackground(layerBack_ctx) {
+    if (layerBack_ctx == canvas_ctx) { backgroundColor = 'white' }
+    layerBack_ctx.fillStyle = backgroundColor;
+    layerBack_ctx.fillRect(0, 0, layer.width, layer.height);
+    layer_ctx.fillStyle = selectedColor;
 }
 
 sizeSlider.addEventListener("change", () => brushWhidth = sizeSlider.value);//слайдер толщины
@@ -68,26 +86,35 @@ colorPicker.addEventListener("change", () => {
 
 //Очистка холста
 clearCanvas.addEventListener("click", () => {
-    clear();
+    clear(layer_ctx);
+    cPushArray = [];
+    cStep = -1;
 });
 
 //Заливка холста
 colorCanvas.addEventListener("click", () => {
     backgroundColor = selectedColor;
-    setCanvasBackground();
+    setCanvasBackground(layer_ctx);
+    cPush();
 });
 
-function clear() {
-    canvas_ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setCanvasBackground();
+function clear(layerClear_ctx) {
+    layerClear_ctx.clearRect(0, 0, layer.width, layer.height);
+    if (layerClear_ctx == canvas_ctx) { setCanvasBackground(layerClear_ctx); }
+
 }
 
 //Сохранение холста
 saveImg.addEventListener("click", () => {
+    canvas_ctx.drawImage(layer1, 0, 0);
+    canvas_ctx.drawImage(layer2, 0, 0);
+    canvas_ctx.drawImage(layer3, 0, 0);
+
     const link = document.createElement("a");
     link.download = `${Date.now()}.png`
     link.href = canvas.toDataURL();
     link.click();
+    clear(canvas_ctx);
 });
 
 //Выбор инструментов
@@ -100,6 +127,26 @@ toolBtns.forEach(btn => {
 });
 
 //Функции
+function layers(selectedLayer) {
+    if (selectedLayer == 3) {
+        layer = layer3;
+        layer_ctx = layer3_ctx;
+    }
+    else if (selectedLayer == 2) {
+        layer = layer2;
+        layer_ctx = layer2_ctx;
+    }
+    else {
+        layer = layer1;
+        layer_ctx = layer1_ctx;
+    }
+
+    cPushArray = [];
+    cStep = -1;
+    cPush();
+    console.log(selectedLayer);
+}
+
 function drawStart(e) {
     lastPoint = { x: e.clientX - draw.offsetLeft, y: e.clientY - draw.offsetTop };
     draw_ctx.strokeStyle = selectedColor;
@@ -118,10 +165,10 @@ function drawStart(e) {
 function drawEnd() {
     if (isIdle) return;
     isIdle = true;
-    canvas_ctx.globalAlpha = brushAlpha;
-    canvas_ctx.drawImage(draw, 0, 0);
+    layer_ctx.globalAlpha = brushAlpha;
+    layer_ctx.drawImage(draw, 0, 0);
     draw_ctx.clearRect(0, 0, draw.width, draw.height);
-    canvas_ctx.globalAlpha = 1;
+    layer_ctx.globalAlpha = 1;
     cPush();
 }
 
@@ -187,15 +234,12 @@ function triangle() {
 function cPush() {
     cStep++;
     if (cStep < cPushArray.length) { cPushArray.length = cStep; }
-    cPushArray.push(canvas.toDataURL());
+    cPushArray.push(layer.toDataURL());
     if (cStep > cLimit) {
         cStep = cLimit;
         cPushArray = cPushArray.slice(1);
     }
-
     console.log(cPushArray);
-    console.log(cStep);
-
 }
 
 
@@ -204,7 +248,10 @@ function cUndo() {
         cStep--;
         var canvasPic = new Image();
         canvasPic.src = cPushArray[cStep];
-        canvasPic.onload = function () { canvas_ctx.drawImage(canvasPic, 0, 0); }
+        canvasPic.onload = function () {
+            layer_ctx.clearRect(0, 0, layer.width, layer.height)
+            layer_ctx.drawImage(canvasPic, 0, 0);
+        }
     }
 }
 
@@ -213,7 +260,10 @@ function cRedo() {
         cStep++;
         var canvasPic = new Image();
         canvasPic.src = cPushArray[cStep];
-        canvasPic.onload = function () { canvas_ctx.drawImage(canvasPic, 0, 0); }
+        canvasPic.onload = function () {
+            layer_ctx.clearRect(0, 0, layer.width, layer.height)
+            layer_ctx.drawImage(canvasPic, 0, 0);
+        }
     }
 }
 
@@ -228,11 +278,20 @@ function check(e) {
         case 69: selectedTool = "eraser"
             document.querySelector(".options .active").classList.remove("active");
             document.querySelector("#eraser").classList.add("active"); break;
-        case 188: sizeSlider.value--;
+        case 219: sizeSlider.value = parseFloat(sizeSlider.value) - 5;
             brushWhidth = sizeSlider.value; break;
-        case 190: sizeSlider.value++;
+        case 221: sizeSlider.value = parseFloat(sizeSlider.value) + 5;
             brushWhidth = sizeSlider.value; break;
-        //default: console.log(code);
+        case 188: alphaSlider.value = parseFloat(alphaSlider.value) - 0.05;
+            console.log(alphaSlider.value);
+            brushAlpha = alphaSlider.value; break;
+        case 190: alphaSlider.value = parseFloat(alphaSlider.value) + 0.05;
+            console.log(alphaSlider.value);
+            brushAlpha = alphaSlider.value; break;
+        case 49: layers(1); break;//layer1
+        case 50: layers(2); break;//layer2
+        case 51: layers(3); break;//layer3
+        default: console.log(code);
     }
 }
 

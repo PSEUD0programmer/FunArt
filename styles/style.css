@@ -208,6 +208,27 @@ section {
 #canvas {
     position: absolute;
     display: flex;
+    border-radius: 7px;
+    opacity: 1;
+}
+
+#layer1 {
+    position: absolute;
+    display: flex;
+    background: transparent;
+    border-radius: 7px;
+    opacity: 1;
+}
+#layer2 {
+    position: absolute;
+    display: flex;
+    background: transparent;
+    border-radius: 7px;
+    opacity: 1;
+}
+#layer3 {
+    position: absolute;
+    display: flex;
     background: transparent;
     border-radius: 7px;
     opacity: 1;
