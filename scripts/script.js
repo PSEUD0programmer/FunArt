@@ -63,6 +63,7 @@ function setCanvasBackground(layerBack_ctx) {
     layerBack_ctx.fillStyle = backgroundColor;
     layerBack_ctx.fillRect(0, 0, layer.width, layer.height);
     layer_ctx.fillStyle = selectedColor;
+    cPush();
 }
 
 sizeSlider.addEventListener("change", () => brushWhidth = sizeSlider.value);//слайдер толщины
@@ -89,13 +90,14 @@ clearCanvas.addEventListener("click", () => {
     clear(layer_ctx);
     cPushArray = [];
     cStep = -1;
+    cPush();
 });
 
 //Заливка холста
 colorCanvas.addEventListener("click", () => {
     backgroundColor = selectedColor;
+    layer_ctx.globalCompositeOperation="source-over"
     setCanvasBackground(layer_ctx);
-    cPush();
 });
 
 function clear(layerClear_ctx) {
@@ -166,9 +168,11 @@ function drawEnd() {
     if (isIdle) return;
     isIdle = true;
     layer_ctx.globalAlpha = brushAlpha;
+    if (selectedTool === "eraser"){layer_ctx.globalCompositeOperation="destination-out";}
     layer_ctx.drawImage(draw, 0, 0);
     draw_ctx.clearRect(0, 0, draw.width, draw.height);
     layer_ctx.globalAlpha = 1;
+    layer_ctx.globalCompositeOperation="source-over"
     cPush();
 }
 
@@ -177,7 +181,7 @@ function drawMove(e) {
     currentPoint = { x: e.clientX - draw.offsetLeft, y: e.clientY - draw.offsetTop };
 
     if (selectedTool === "brush" || selectedTool === "eraser") {
-        draw_ctx.strokeStyle = selectedTool === "eraser" ? backgroundColor : selectedColor;
+        draw_ctx.strokeStyle = selectedTool === "eraser" ? "white" : selectedColor;
         draw_ctx.beginPath();
         draw_ctx.moveTo(lastPoint.x, lastPoint.y);
         draw_ctx.lineTo(currentPoint.x, currentPoint.y);
